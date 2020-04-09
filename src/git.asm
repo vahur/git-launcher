@@ -1,5 +1,5 @@
                 default rel
-                extern  ExitProcess, LocalAlloc, LocalFree, GetEnvironmentVariableW, SetEnvironmentVariableW, lstrcpyW
+                extern  ExitProcess, LocalAlloc, LocalFree, GetEnvironmentVariableW, SetEnvironmentVariableW, lstrcpynW
                 extern  GetCommandLineW, CreateProcessW, WaitForSingleObject, GetExitCodeProcess, CloseHandle
                 global  start
 
@@ -66,38 +66,27 @@ start:
                 test    rax, rax
                 jz      .fail
 
-                mov     rdx, ENV_VAR_SIZE
-                xor     rcx, rcx
-                call    LocalAlloc
-                mov     r15, rax
-                test    rax, rax
-                jz      .fail
+                mov     r8, s_exe_dir_l / 2 + 1     ; +1 for 0 terminator
+                lea     rdx, [s_app]
+                mov     rcx, rax
+                call    lstrcpynW                   ; Copy exe dir to buffer
+                mov     word [r14 + s_exe_dir_l], ';'
 
-                mov     r8, ENV_VAR_SIZE / 2
-                mov     rdx, r14
+                mov     r8, (ENV_VAR_SIZE - s_exe_dir_l - 2) / 2
+                lea     rdx, [r14 + s_exe_dir_l + 2]
                 lea     rcx, [s_path]
-                call    GetEnvironmentVariableW
+                call    GetEnvironmentVariableW     ; Append PATH env var value to buffer
 
-                cmp     rax, (ENV_VAR_SIZE - s_exe_dir_l) / 2
+                cmp     rax, (ENV_VAR_SIZE - s_exe_dir_l - 2) / 2
                 jb      .size_ok
 .fail:
                 mov     ecx, -1
                 jmp     ExitProcess
 .size_ok:
-                lea     rdx, [s_exe_dir]
-                mov     rcx, r15
-                call    lstrcpyW
-
                 mov     rdx, r14
-                lea     rcx, [r15 + s_exe_dir_l - 2]
-                call    lstrcpyW
-
-                mov     rdx, r15
                 lea     rcx, [s_path]
                 call    SetEnvironmentVariableW
 
-                mov     rcx, r15
-                call    LocalFree
                 mov     rcx, r14
                 call    LocalFree
 
@@ -155,7 +144,6 @@ create_process:
                 section .rdata
 s_path          dw      __utf16__('PATH'), 0
 s_path_l        equ     $ - s_path
-s_exe_dir       dw      __utf16__('C:\MSys\usr\bin;'), 0
-s_exe_dir_l     equ     $ - s_exe_dir
 s_app           dw      __utf16__('C:\MSys\usr\bin\git.exe'), 0
 s_app_l         equ     $ - s_app
+s_exe_dir_l     equ     s_app_l - (9 * 2) ; s_app_l - sizeof('\git.exe', 0)

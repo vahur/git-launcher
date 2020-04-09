@@ -1,7 +1,6 @@
 @echo off
 
-if "%1"=="" goto release
-goto %1
+if not "%1"=="" goto %1
 
 :release
 set bldtype=release
@@ -23,5 +22,9 @@ set ldflags=/NOLOGO /SUBSYSTEM:CONSOLE /ENTRY:start /MACHINE:X64 /LIBPATH:lib %l
 if not exist %bld% mkdir %bld%
 
 tools\nasm -f win64 %asflags% -o %bld%\git.obj src\git.asm
+if %errorlevel% neq 0 goto end
+
 tools\vc\link %ldflags% /OUT:%bld%\git.exe %bld%\git.obj kernel32.lib
+
+:end
 popd
