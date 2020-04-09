@@ -1,4 +1,5 @@
 @echo off
+pushd "%~dp0"
 
 if not "%1"=="" goto %1
 
@@ -30,3 +31,4 @@ echo set nasm="C:\Users\vahur\Tools\nasm.exe"
 ) > setup_env.bat
 
 :end
+popd
