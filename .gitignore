@@ -1,4 +1,3 @@
-lib
 target
-tools
-setup_env.bat
+env.bat
+*.sublime-*
