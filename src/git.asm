@@ -1,11 +1,19 @@
                 default rel
-                extern  ExitProcess, LocalAlloc, LocalFree, GetEnvironmentVariableW, SetEnvironmentVariableW, lstrcpynW
+                extern  ExitProcess, VirtualAlloc, VirtualFree, GetEnvironmentVariableW, SetEnvironmentVariableW, lstrcpynW
                 extern  GetCommandLineW, CreateProcessW, WaitForSingleObject, GetExitCodeProcess, CloseHandle
                 global  start
 
 ENV_VAR_SIZE    equ (32 * 1024)
+PAGE_SIZE       equ 4096
 
 ; -----------------------------------------------------------------------------
+
+PAGE_READWRITE  equ 4
+
+MEM_COMMIT      equ 00001000h
+MEM_RESERVE     equ 00002000h
+
+MEM_RELEASE     equ 00008000h
 
 struc PROCESS_INFORMATION
     .hProcess               resq    1   ; 0
@@ -59,9 +67,11 @@ endstruc                                ; 80
 start:
                 sub     rsp, 28h + PROCESS_INFORMATION_size + 8
 
-                mov     rdx, ENV_VAR_SIZE
+                mov     r9, PAGE_READWRITE
+                mov     r8, MEM_COMMIT | MEM_RESERVE
+                mov     rdx, ENV_VAR_SIZE / PAGE_SIZE
                 xor     rcx, rcx
-                call    LocalAlloc
+                call    VirtualAlloc
                 mov     r14, rax
                 test    rax, rax
                 jz      .fail
@@ -87,8 +97,10 @@ start:
                 lea     rcx, [s_path]
                 call    SetEnvironmentVariableW
 
+                mov     r8, MEM_RELEASE
+                xor     edx, edx
                 mov     rcx, r14
-                call    LocalFree
+                call    VirtualFree
 
                 lea     rcx, [processInfo]
                 call    create_process
